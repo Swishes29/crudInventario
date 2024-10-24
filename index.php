@@ -12,6 +12,8 @@ try {
     $stmtProveedores = $pdo->query("SELECT COUNT(*) AS total FROM Proveedores");
     $totalProveedores = $stmtProveedores->fetchColumn();
 } catch (PDOException $e) {
+    $stmtClientes = $pdo->query("SELECT COUNT(*) AS total FROM Clientes");
+    $totalClientes = $stmtClientes->fetchColumn();
     // Manejo de errores en las consultas
     echo "Error en la consulta: " . $e->getMessage();
     $totalProductos = $totalCategorias = $totalProveedores = 0; // Asignar valores por defecto en caso de error
@@ -48,7 +50,18 @@ GROUP BY
     echo "Error al obtener productos por categoría: " . $e->getMessage();
     $productosPorCategoria = [];
 }
+try {
+    // Consulta para obtener el número total de clientes
+    $stmtClientes = $pdo->query("SELECT COUNT(*) AS total FROM Clientes");
+    $totalClientes = $stmtClientes->fetchColumn();
+} catch (PDOException $e) {
+    // Manejo de errores en la consulta
+    echo "Error en la consulta: " . $e->getMessage();
+    $totalClientes = 0; // Asignar valor por defecto en caso de error
+}
+
 ?>
+
 
 <!DOCTYPE html>
 <html lang="es">
@@ -62,14 +75,16 @@ GROUP BY
     <style>
         /* Mejoras de estilo para tarjetas y secciones */
         .dashboard-card {
-            transition: transform 0.3s;
-            border-radius: 15px;
-            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
             background-color: #f9f9f9;
+            border-left: 5px solid #007bff;
         }
 
-        .dashboard-card:hover {
-            transform: scale(1.05);
+        .dashboard-card.total-categorias {
+            border-left: 5px solid #28a745;
+        }
+
+        .dashboard-card.total-proveedores {
+            border-left: 5px solid #ffc107;
         }
 
         .card-body h3 {
@@ -119,13 +134,20 @@ GROUP BY
                         <a class="nav-link active" href="index.php">Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="productos.php">Productos</a>
+                        <a class="nav-link" href="productos.php"><i class="fas fa-box"></i> Productos</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="categorias/listar_categorias.php">Categorías</a>
+                        <a class="nav-link" href="categorias/listar_categorias.php"><i class="fas fa-tags"></i> Categorías</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="proveedores/listar_proveedores.php"><i class="fas fa-truck mb-2"></i>
+                            Proveedores</a>
+
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="proveedores/listar_proveedores.php">Proveedores</a>
+                        <a class="nav-link" href="clientes/clientes.php"> <i class="fas fa-users mb-2"></i>
+                            Clientes</a>
                     </li>
                 </ul>
             </div>
@@ -169,6 +191,17 @@ GROUP BY
                 </div>
             </div>
         </div>
+        <div class="col-md-4">
+            <div class="card dashboard-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-users mb-2"></i>
+                    <h3>Total Clientes</h3>
+                    <p><strong><?= $totalClientes ?></strong> clientes</p>
+                    <a href="clientes/clientes.php" class="btn btn-primary">Ver Clientes</a>
+                </div>
+            </div>
+        </div>
+
 
         <!-- Gráfico de productos por categoría -->
         <div class="mt-5">
@@ -198,8 +231,13 @@ GROUP BY
                                 <td><?= $producto['Precio'] ?> $</td>
                                 <td><?= $producto['proveedor'] ?></td>
                                 <td>
-                                    <a href="editar_producto.php?id=<?= $producto['ID_Productos'] ?>" class="btn btn-warning">Editar</a>
-                                    <a href="eliminar_producto.php?id=<?= $producto['ID_Productos'] ?>" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar este producto?')">Eliminar</a>
+                                    <a href="editar_producto.php?id=<?= $producto['ID_Productos'] ?>" class="btn btn-outline-warning btn-sm">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="eliminar_producto.php?id=<?= $producto['ID_Productos'] ?>" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar este producto?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+
                                 </td>
                             </tr>
                         <?php endforeach; ?>
