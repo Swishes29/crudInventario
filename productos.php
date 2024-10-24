@@ -1,7 +1,12 @@
 <?php
 include 'db.php';
 
-$stmt = $pdo->query("SELECT * FROM Productos");
+// Consulta con JOIN para obtener el nombre del proveedor
+$stmt = $pdo->query("
+    SELECT p.*, prov.Nombre AS Proveedor 
+    FROM productos p
+    JOIN proveedores prov ON p.ID_Proveedor = prov.ID_Proveedor
+");
 $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
@@ -12,24 +17,44 @@ $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listado de Productos</title>
     <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .table th {
+            cursor: pointer;
+        }
+        .table th.sort-asc::after {
+            content: "\f0de"; /* FontAwesome icon for ascending */
+            font-family: 'FontAwesome';
+            margin-left: 5px;
+        }
+        .table th.sort-desc::after {
+            content: "\f0dd"; /* FontAwesome icon for descending */
+            font-family: 'FontAwesome';
+            margin-left: 5px;
+        }
+        .btn-sm i {
+            margin-right: 0;
+        }
+    </style>
 </head>
 <body>
 <div class="container">
     <h1 class="mt-5">Productos</h1>
-    <a href="crear_producto.php" class="btn btn-primary mb-3">Agregar Producto</a>
-    <table class="table table-bordered">
+    
+    <!-- Tabla mejorada con paginación y ordenación -->
+    <table class="table table-bordered table-hover">
         <thead>
         <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Precio</th>
-            <th>Cantidad</th>
+            <th onclick="sortTable(0)">ID</th>
+            <th onclick="sortTable(1)">Nombre</th>
+            <th onclick="sortTable(2)">Precio</th>
+            <th onclick="sortTable(3)">Cantidad</th>
             <th>Categoría</th>
-            <th>Proveedor</th>
+            <th>Proveedor</th> <!-- Cambio aquí -->
             <th>Acciones</th>
         </tr>
         </thead>
-        <tbody>
+        <tbody id="productosTable">
         <?php foreach ($productos as $producto) : ?>
             <tr>
                 <td><?= $producto['ID_Productos'] ?></td>
@@ -37,16 +62,88 @@ $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <td><?= $producto['Precio'] ?></td>
                 <td><?= $producto['Cantidad'] ?></td>
                 <td><?= $producto['ID_Categoria'] ?></td>
-                <td><?= $producto['ID_Proveedor'] ?></td>
-                <td>
-                    <a href="editar_producto.php?id=<?= $producto['ID_Productos'] ?>" class="btn btn-warning">Editar</a>
-                    <a href="eliminar_producto.php?id=<?= $producto['ID_Productos'] ?>" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar este producto?')">Eliminar</a>
+                <td><?= $producto['Proveedor'] ?></td> <!-- Mostrando el nombre del proveedor -->
+                <td class="text-center">
+                    <a href="editar_producto.php?id=<?= $producto['ID_Productos'] ?>" class="btn btn-outline-warning btn-sm">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="eliminar_producto.php?id=<?= $producto['ID_Productos'] ?>" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar este producto?')">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                    <a href="crear_producto.php" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-plus"></i>
+                    </a>
                 </td>
             </tr>
         <?php endforeach; ?>
         </tbody>
     </table>
+
+    <!-- Paginación -->
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center" id="pagination"></ul>
+    </nav>
 </div>
+
 <script src="bootstrap/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Ordenar tabla por columna
+    function sortTable(n) {
+        const table = document.getElementById("productosTable");
+        let switching = true, rows, i, x, y, shouldSwitch, dir = "asc", switchCount = 0;
+        while (switching) {
+            switching = false;
+            rows = table.rows;
+            for (i = 0; i < (rows.length - 1); i++) {
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName("TD")[n];
+                y = rows[i + 1].getElementsByTagName("TD")[n];
+                if ((dir === "asc" && x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) || 
+                    (dir === "desc" && x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase())) {
+                    shouldSwitch = true;
+                    break;
+                }
+            }
+            if (shouldSwitch) {
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+                switchCount++;
+            } else if (switchCount === 0 && dir === "asc") {
+                dir = "desc";
+                switching = true;
+            }
+        }
+    }
+
+    // Paginación (simple ejemplo)
+    const rowsPerPage = 5;
+    const rows = [...document.querySelectorAll("#productosTable tr")];
+    const pagination = document.getElementById("pagination");
+    let currentPage = 1;
+
+    function displayPage(page) {
+        const start = (page - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        rows.forEach((row, index) => {
+            row.style.display = (index >= start && index < end) ? "" : "none";
+        });
+        updatePagination();
+    }
+
+    function updatePagination() {
+        const pageCount = Math.ceil(rows.length / rowsPerPage);
+        pagination.innerHTML = "";
+        for (let i = 1; i <= pageCount; i++) {
+            const li = document.createElement("li");
+            li.classList.add("page-item");
+            li.innerHTML = `<a class="page-link" href="#" onclick="displayPage(${i})">${i}</a>`;
+            if (i === currentPage) li.classList.add("active");
+            pagination.appendChild(li);
+        }
+    }
+
+    displayPage(currentPage);
+</script>
 </body>
 </html>
