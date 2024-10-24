@@ -1,5 +1,5 @@
 <?php
-include 'db.php'; // Asegúrate de que 'db.php' contiene la conexión PDO a la base de datos.
+include 'db.php'; 
 
 try {
     // Consultas para obtener contadores de productos, categorías y proveedores
